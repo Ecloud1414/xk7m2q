@@ -35,7 +35,9 @@ p{margin:.6rem 0}
 .page-nav button{background:none;border:1px solid var(--border);border-radius:6px;width:36px;height:32px;cursor:pointer;color:var(--ink);font-size:1rem;display:flex;align-items:center;justify-content:center;transition:all .15s}
 .page-nav button:hover:not(:disabled){border-color:var(--gold);color:var(--gold)}
 .page-nav button:disabled{opacity:.25;cursor:default}
-.page-num{font-family:'Source Serif 4',system-ui,sans-serif;font-size:.75rem;color:var(--ink2);min-width:50px;text-align:center}
+.page-num{font-family:'Source Serif 4',system-ui,sans-serif;font-size:.75rem;color:var(--ink2);min-width:50px;text-align:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.page-num:hover{color:var(--gold)}
+.page-input{width:50px;font-family:'Source Serif 4',system-ui,sans-serif;font-size:.85rem;text-align:center;border:1px solid var(--gold);border-radius:6px;padding:2px 4px;outline:none;color:var(--ink);background:var(--page)}
 .popup{position:fixed;z-index:100;background:var(--page);border:1px solid #ccc;border-radius:10px;padding:1rem 1.2rem;box-shadow:0 8px 30px var(--shadow2),0 2px 8px var(--shadow);max-width:420px;min-width:160px;opacity:0;transform:translateY(6px);transition:opacity .2s,transform .2s;pointer-events:none}
 .popup.visible{opacity:1;transform:translateY(0);pointer-events:auto}
 .popup .lbl{font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);font-family:'Source Serif 4',system-ui,sans-serif;margin-bottom:.4rem}
@@ -1685,6 +1687,51 @@ if(e.key==='ArrowRight'&&cp<pages.length-1){cp++;render()}
 
 pb.addEventListener('click',()=>{if(cp>0){cp--;render()}});
 nb.addEventListener('click',()=>{if(cp<pages.length-1){cp++;render()}});
+
+// --- Page jump: tap page number ---
+let jumpMode=false;
+pn.addEventListener('click',()=>{
+if(jumpMode)return;
+jumpMode=true;
+const cur=cp+1;
+pn.innerHTML='<input class="page-input" id="jumpInput" type="number" min="1" max="'+pages.length+'" value="'+cur+'" inputmode="numeric">';
+const inp=document.getElementById('jumpInput');
+inp.focus();
+inp.select();
+inp.addEventListener('keydown',e=>{
+if(e.key==='Enter'){
+  const v=parseInt(inp.value);
+  if(v>=1&&v<=pages.length){cp=v-1;render();}
+  else{pn.textContent=cur+' / '+pages.length;}
+  jumpMode=false;
+}
+if(e.key==='Escape'){pn.textContent=cur+' / '+pages.length;jumpMode=false;}
+});
+inp.addEventListener('blur',()=>{
+  if(!jumpMode)return;
+  const v=parseInt(inp.value);
+  if(v>=1&&v<=pages.length){cp=v-1;render();}
+  else{pn.textContent=cur+' / '+pages.length;}
+  jumpMode=false;
+});
+});
+
+// --- Swipe navigation ---
+let touchStartX=0,touchStartY=0,touchStartTime=0;
+pe.addEventListener('touchstart',e=>{
+touchStartX=e.touches[0].clientX;
+touchStartY=e.touches[0].clientY;
+touchStartTime=Date.now();
+},{passive:true});
+pe.addEventListener('touchend',e=>{
+const dx=e.changedTouches[0].clientX-touchStartX;
+const dy=e.changedTouches[0].clientY-touchStartY;
+const dt=Date.now()-touchStartTime;
+if(dt>300)return;
+if(Math.abs(dx)<50||Math.abs(dy)>Math.abs(dx)*0.7)return;
+if(dx>0&&cp>0){cp--;render();}
+else if(dx<0&&cp<pages.length-1){cp++;render();}
+},{passive:true});
 
 document.querySelectorAll('.mode-btn').forEach(b=>b.addEventListener('click',()=>{
 document.querySelectorAll('.mode-btn').forEach(x=>x.classList.remove('active'));
